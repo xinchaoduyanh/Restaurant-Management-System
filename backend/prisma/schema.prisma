@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator dbml {
+  provider = "prisma-dbml-generator"
+}
+
+// End Generation Here
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+
+model Account {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String         @unique
+  password     String
+  avatar       String?
+  role         String         @default("Employee") // Owner, Employee
+  orders       Order[]
+  employees    Account[]      @relation("OwnerEmployee")
+  owner        Account?       @relation("OwnerEmployee", fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ownerId      String?        @db.ObjectId
+  refreshToken RefreshToken[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+
+
+model Dish {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  price         Int
+  description   String
+  image         String
+  status        String         @default("Available")
+  dishSnapshots DishSnapshot[]
+  Order         Order?         @relation(fields: [orderId], references: [id])
+  orderId       String?        @db.ObjectId
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+
+
+model DishSnapshot {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  price       Int
+  description String
+  image       String
+  status      String   @default("Available")
+  dish        Dish?    @relation(fields: [dishId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  dishId      String?  @db.ObjectId
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  orderId     String?  @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+
+model Order {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  total         Int
+  status        String         @default("Pending")
+  account       Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  accountId     String?        @db.ObjectId
+  dishes        Dish[]
+  dishSnapshots DishSnapshot[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+
+
+model RefreshToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  accountId String?  @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
