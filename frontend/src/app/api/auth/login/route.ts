@@ -6,15 +6,14 @@ import { NextResponse } from "next/server";
 import { HttpError } from "@/lib/http";
 export async function POST(req: Request) {
   const body = (await req.json()) as LoginBodyType;
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   try {
     const { payload } = await authApiRequest.sLogin(body);
     const { accessToken, refreshToken } = payload.data;
     const decodedAccessToken = jwt.decode(accessToken) as { exp: number };
     const decodedRefreshToken = jwt.decode(refreshToken) as { exp: number };
-    const accessTokenExp = new Date(decodedAccessToken.exp * 1000);
-    const refreshTokenExp = new Date(decodedRefreshToken.exp * 1000);
-    const currentTime = new Date();
+    const accessTokenExp = decodedAccessToken.exp * 1000;
+    const refreshTokenExp = decodedRefreshToken.exp * 1000;
     cookieStore.set("accessToken", accessToken, {
       path: "/",
       httpOnly: true,
@@ -24,11 +23,16 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(payload);
   } catch (error) {
-    if(error instanceof HttpError) {
-      return NextResponse.json({error: error.payload}, {status: error.status})
+    if (error instanceof HttpError) {
+      return NextResponse.json(
+        { error: error.payload },
+        { status: error.status }
+      );
+    } else {
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      );
     }
-    else {
-      return NextResponse.json({error: "Internal server error"}, {status: 500})
-    } 
   }
 }
